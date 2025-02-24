@@ -32,11 +32,10 @@ class CommentFormatter:
         - Name: <function name>
         - Description: <description>
         - Parameters:
-          - param1: <description> [default: <value>]
-          - param2: <description>
+        - param1: <description> [default: <value>]
+        - param2: <description>
         - Returns: <return description>
         """
-        # This is a simple parser - you might want to make it more robust
         lines = inference_output.strip().split("\n")
         result = {"name": "", "description": "", "parameters": [], "returns": ""}
 
@@ -44,39 +43,58 @@ class CommentFormatter:
 
         for line in lines:
             line = line.strip()
-            if line.startswith("Name:"):
-                result["name"] = line[5:].strip()
+
+            # Skip empty lines
+            if not line:
+                continue
+
+            # Handle main sections
+            if line.startswith("- Name:"):
                 current_section = "name"
-            elif line.startswith("Description:"):
-                result["description"] = line[12:].strip()
+                result["name"] = line.replace("- Name:", "").strip()
+            elif line.startswith("- Description:"):
                 current_section = "description"
-            elif line.startswith("Parameters:"):
+                result["description"] = line.replace("- Description:", "").strip()
+            elif line.startswith("- Parameters:"):
                 current_section = "parameters"
-            elif line.startswith("Returns:"):
-                result["returns"] = line[8:].strip()
+                buffer = []  # Reset buffer for parameters
+            elif line.startswith("- Returns:"):
                 current_section = "returns"
-            elif line.startswith("-") and current_section == "parameters":
-                param_line = line[1:].strip()
-                param_parts = param_line.split(":")
-                param_name = param_parts[0].strip()
-                param_desc = ":".join(param_parts[1:]).strip()
+                result["returns"] = line.replace("- Returns:", "").strip()
+            # Handle parameter entries
+            elif line.startswith("  -") and current_section == "parameters":
+                param_line = line.replace("  -", "").strip()
 
-                # Check for default value
-                default_value = None
-                if "[default:" in param_desc:
-                    desc_parts = param_desc.split("[default:")
-                    param_desc = desc_parts[0].strip()
-                    default_value = desc_parts[1].strip("]").strip()
+                # Split on first colon to separate name and description
+                param_parts = param_line.split(":", 1)
+                if len(param_parts) == 2:
+                    param_name = param_parts[0].strip()
+                    param_desc = param_parts[1].strip()
 
-                result["parameters"].append(
-                    {
-                        "name": param_name,
-                        "description": param_desc,
-                        "default": default_value,
-                    }
-                )
-            elif line and current_section:
-                # Append to current section for multi-line descriptions
+                    # Parse type information if present
+                    param_type = None
+                    if "," in param_desc:
+                        type_parts = param_desc.split(",", 1)
+                        param_type = type_parts[0].strip()
+                        param_desc = type_parts[1].strip()
+
+                    # Check for default value
+                    default_value = None
+                    if "[default:" in param_desc:
+                        desc_parts = param_desc.split("[default:")
+                        param_desc = desc_parts[0].strip()
+                        default_value = desc_parts[1].strip("]").strip()
+
+                    result["parameters"].append(
+                        {
+                            "name": param_name,
+                            "description": param_desc,
+                            "type": param_type,
+                            "default": default_value,
+                        }
+                    )
+            # Append to current section for multi-line content
+            elif current_section and not line.startswith("-"):
                 if current_section == "description":
                     result["description"] += " " + line
                 elif current_section == "returns":

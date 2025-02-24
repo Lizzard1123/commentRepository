@@ -55,38 +55,40 @@ def main(type: str, service: str, api_key: Optional[str], input_path: str):
         generate_readme(inference, readme_formatter, input_path)
 
 
-def process_repository(inference: InferenceBase, repo_path: str):
-    """Process all Python files in a repository."""
+def process_repository(inference: InferenceBase, formatter: CommentFormatter, repo_path: str):
+    """Process all TypeScript files in a repository."""
     for root, _, files in os.walk(repo_path):
         for file in files:
-            if file.endswith(".py"):
+            if file.endswith(".ts"):
                 file_path = os.path.join(root, file)
-                process_functions(inference, file_path)
+                process_functions(inference, formatter, file_path)
 
 
 def process_functions(
     inference: InferenceBase, formatter: CommentFormatter, file_path: str
 ):
-    """Process individual functions in a TypeScript file."""
+    """Process all functions in a TypeScript file."""
     parser = TypeScriptParser()
 
-    try:
-        functions = parser.parse_file(file_path)
-    except Exception as e:
-        print(f"Error parsing file {file_path}: {str(e)}")
+    # Read current file content
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    # Parse functions from file
+    functions = parser.parse_file(file_path)
+    if not functions:
         return
 
-    # Collect context about the module
-    module_context = f"File: {os.path.basename(file_path)}"
+    updated_lines = lines[:]
+    insertion_offsets = 0
 
     for func_name, func_code, metadata in functions:
         # Format parameters as a string
-        param_strings = []
-        for param in metadata["parameters"]:
-            param_strings.append(f"{param['name']}: {param['type']}")
+        param_strings = [f"{param['name']}: {param['type']}" for param in metadata["parameters"]]
         params_str = ", ".join(param_strings)
 
         # Create context with TypeScript-specific information
+        module_context = f"File: {os.path.basename(file_path)}"
         context = (
             f"{module_context}\n"
             f"Function: {func_name}\n"
@@ -102,9 +104,32 @@ def process_functions(
         # Format the comment
         formatted_comment = formatter.format_comment(raw_comment)
 
-        print(f"\nProcessing function: {func_name}")
-        print("Generated comment:")
-        print(formatted_comment)
+        # Determine insertion position
+        insert_position = metadata["pos"]["startLine"] - 1 + insertion_offsets
+
+        # Get the indentation of the function
+        function_line = updated_lines[insert_position]
+        indentation = ""
+        for char in function_line:
+            if char in [" ", "\t"]:
+                indentation += char
+            else:
+                break
+
+        # Add indentation to each comment line
+        comment_lines = [
+            indentation + line + "\n" for line in formatted_comment.split("\n")
+        ]
+
+        # Insert the comment lines before the function
+        updated_lines[insert_position:insert_position] = comment_lines
+        insertion_offsets += len(comment_lines)
+
+    # Write the modified content back to the file
+    with open(file_path, "w") as f:
+        f.writelines(updated_lines)
+
+    print(f"\nFinished processing {file_path}")
 
 
 def generate_readme(

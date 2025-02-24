@@ -119,6 +119,7 @@ console.log(JSON.stringify(functions, null, 2));
                 )
 
                 metadata = {
+                    **func,
                     "isAsync": func["isAsync"],
                     "parameters": func["params"],
                     "returnType": func["returnType"],
