@@ -147,7 +147,7 @@ def insert_comment(
         raw_comment = inference.generate(prompt)
         formatted_comment = formatter.format_comment(raw_comment, previous_comment_text, metadata)
     if formatted_comment == "None":
-        return "", insertion_offsets
+        return lines, insertion_offsets
     # Detect indentation level from element line
     element_line = lines[start_line]
     indentation = element_line[: len(element_line) - len(element_line.lstrip())]
