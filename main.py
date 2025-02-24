@@ -58,7 +58,7 @@ def main(type: str, service: str, api_key: Optional[str], input_path: str, slug_
     readme_formatter = ReadmeFormatter(model_name)
 
     if type == "repository":
-        process_repository(inference, comment_formatter, input_path)
+        process_repository(inference, comment_formatter, readme_formatter, input_path)
     elif type == "functions":
         process_file(inference, comment_formatter, input_path)
     elif type == "slug":

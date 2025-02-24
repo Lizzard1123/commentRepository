@@ -1,7 +1,7 @@
 /**
- * Type representing different types of down payment assistance payments.
+ * Type representing different down payment assistance payment types.
  *
- * @generated so8Y8J v1.2 Generated on: 2025-02-23 23:49:49 by Ollama
+ * @generated fLP2sm v1.4 Generated on: 2025-02-24 00:25:02 by Ollama
  */
 export type DPAPayment =
   | {
@@ -23,14 +23,14 @@ export type DPAPayment =
     };
 
 /**
- * Type definition for parameters related to down payment assistance.
+ * Type for defining down payment assistance parameters.
  *
- * @param name {string} An optional string representing the name of the parameter.
- * @param type {'salesPrice' | 'loanAmount' | 'fixed'} An optional string indicating the type of the parameter, which can be one of 'salesPrice', 'loanAmount', or 'fixed'.
- * @param value {number} An optional number representing the value of the parameter.
- * @param payment {DPAPayment} An optional object of type DPAPayment.
+ * @param name {string} Optional parameter to set the name.
+ * @param type {'salesPrice' | 'loanAmount' | 'fixed'} Optional parameter to define the type of value.
+ * @param value {number} Optional parameter to set the value.
+ * @param payment {DPAPayment} Optional parameter for payment details.
  *
- * @generated RpLAD3 v1.2 Generated on: 2025-02-23 23:49:55 by Ollama
+ * @generated so53L8 v1.4 Generated on: 2025-02-24 00:25:08 by Ollama
  */
 export type DPAParams = {
   name?: string;
@@ -42,7 +42,9 @@ export type DPAParams = {
 /**
  * A class for managing down payment assistance details.
  *
- * @generated egLe48 v1.2 Generated on: 2025-02-23 23:49:57 by Ollama
+ * @param data {DPAParams | undefined} An optional object containing DPA parameters to initialize the class instance.
+ *
+ * @generated g41k90 v1.4 Generated on: 2025-02-24 00:25:11 by Ollama
  */
 export class DownPaymentAssistance {
   public name: string = '';

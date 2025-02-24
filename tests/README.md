@@ -2,132 +2,114 @@
 
 ## Overview
 
-### Comprehensive Comment
+Based on the provided folder summaries, here is a summary of the `tests` repository:
 
-The code contains definitions for a `DownPaymentAssistance` class and related utility functions that calculate various aspects of down payment assistance (DPA) based on the properties of a given DPA object. The comments provide detailed explanations for each function, parameter, and return value.
+### Key Components and Their Purposes
 
-#### File Summary:
+1. **DPAPayment Type**:
+   - Defines the structure for different types of DPA payments, including `fixed`, `loan`, and `I/O` payment types.
 
-1. **Types Definition**:
-   - Defines a union type `DPAPayment` representing different types of payments: fixed amount, loan with interest and term, installment (I/O), or none.
-   - Defines an interface `DPAParams` to specify the structure for down payment assistance parameters, including optional fields such as name, DPA type (`salesPrice`, `loanAmount`, or `fixed`), value, and associated payment.
+2. **DPAParams Type**:
+   - Defines a type for parameters related to down payment assistance, including fields like name, type, value, and payment details.
 
-2. **Class Definition**:
-   - The class `DownPaymentAssistance` manages properties like name, type, value, fee, and payment.
-   - A constructor initializes the object using optional parameters from the `DPAParams` interface.
-   - If no data is provided to the constructor, it sets default values for each property.
+3. **DownPaymentAssistance Class**:
+   - Represents an object that contains the details of DPA, such as its name, type, value, and payment structure.
 
-3. **Utility Functions**:
-   - **`calculateTotalDPA`**: Computes the total DPA based on its type and value.
-   - **`calculateDPAPayment`**: Computes the down payment amount using `calculateTotalDPA`.
-   - **`calculateDPALoanPayment`**: Calculates the monthly loan payment if applicable.
+4. **Functions**:
+   - **`calculateTotalDPA`**:
+     - Purpose: Calculates the total DPA based on the specified type and values.
+     - Parameters: `dpa: DownPaymentAssistance`, `salesPrice: number`, `loanAmount: number`.
+     - Returns: The calculated total DPA as a number.
 
-### Code Snippets:
+   - **`calculateDPAPayment`**:
+     - Purpose: Calculates the DPA payment amount based on the given DPA object, sales price, and loan amount.
+     - Parameters: `dpa: DownPaymentAssistance`, `salesPrice: number`, `loanAmount: number`.
+     - Returns: The calculated DPA payment amount as a number.
+
+   - **`qualifierDPAPayment`**:
+     - Purpose: Calculates the monthly payment amount for DPA based on provided details.
+     - Parameters: `dpa: DownPaymentAssistance`, `salesPrice: number`, `loanAmount: number`.
+     - Returns: The calculated monthly payment amount as a number.
+
+### Example Code Snippets
 
 ```typescript
-// Define the payment types
-export type DPAPayment = 
-  | { paymentType: 'fixed'; amount: number }
-  | { paymentType: 'loan'; interest: number; term: number }
-  | { paymentType: 'I/O'; interest: number; term: number }
-  | { paymentType: 'none' };
+// DPAPayment Type definition
+enum DPAPaymentType {
+  Fixed = 'fixed',
+  Loan = 'loan',
+  IO = 'I/O'
+}
 
-// Define the parameters for down payment assistance
-export type DPAParams = {
-  name?: string;
-  type?: 'salesPrice' | 'loanAmount' | 'fixed';
-  value?: number;
-  payment?: DPAPayment;
+type DPAParams = {
+  name: string;
+  type: DPAPaymentType;
+  value: number;
+  paymentDetails?: { // Optional details for specific types of payments
+    fixedAmount?: number; // For Fixed Payment
+    loanAmount?: number; // For Loan Payment
+    interestRate?: number; // For I/O Payment
+  }
 };
 
-// Class to manage down payment assistance details
-export class DownPaymentAssistance {
-  public name: string = '';
-  public type: 'salesPrice' | 'loanAmount' | 'fixed' = 'salesPrice';
-  public value: number = 0;
-  public fee: number = 0;
-  public payment: DPAPayment = { 
-    paymentType: 'fixed', 
-    amount: 0 
-  };
+// DownPaymentAssistance Class
+class DownPaymentAssistance {
+  name: string;
+  type: DPAPaymentType;
+  value: number;
+  paymentDetails: { // Optional details for specific types of payments
+    fixedAmount?: number; // For Fixed Payment
+    loanAmount?: number; // For Loan Payment
+    interestRate?: number; // For I/O Payment
+  }
 
-  // Constructor to initialize the object with optional parameters
-  constructor(data?: DPAParams) {
-    if (data != null) {
-      Object.assign(this, data);
-    }
+  constructor(name: string, type: DPAPaymentType, value: number, paymentDetails?: DPAParams['paymentDetails']) {
+    this.name = name;
+    this.type = type;
+    this.value = value;
+    this.paymentDetails = paymentDetails || {};
   }
 }
 
-// Utility function to calculate total down payment assistance based on type and value
-export function calculateTotalDPA(dpa: DownPaymentAssistance): number {
+// Functions
+
+function calculateTotalDPA(dpa: DownPaymentAssistance, salesPrice: number, loanAmount: number): number {
   switch (dpa.type) {
-    case 'salesPrice':
-      return dpa.value;
-    case 'loanAmount':
-      return dpa.value;
-    case 'fixed':
-      return dpa.value + dpa.fee; // Assuming fee is added to fixed DPA
+    case DPAPaymentType.Fixed:
+      return dpa.value + salesPrice - loanAmount;
+    case DPAPaymentType.Loan:
+      return (salesPrice * dpa.value / 100) + salesPrice - loanAmount;
+    case DPAPaymentType.IO:
+      return (loanAmount * dpa.paymentDetails.interestRate! / 12);
     default:
-      return 0;
+      throw new Error('Unknown payment type');
   }
 }
 
-// Utility function to calculate down payment amount using total DPA
-export function calculateDPAPayment(totalDPA: number): number {
-  const baseFee = totalDPA * 0.15; // Example base fee calculation (15%)
-  return Math.round((totalDPA + baseFee) / 100) * 100;
+function calculateDPAPayment(dpa: DownPaymentAssistance, salesPrice: number, loanAmount: number): number {
+  switch (dpa.type) {
+    case DPAPaymentType.Fixed:
+      return dpa.value;
+    case DPAPaymentType.Loan:
+      return (salesPrice * dpa.value / 100);
+    case DPAPaymentType.IO:
+      return (loanAmount * dpa.paymentDetails.interestRate! / 12);
+    default:
+      throw new Error('Unknown payment type');
+  }
 }
 
-// Utility function to calculate loan payment for installment-based DPA
-export function calculateDPALoanPayment(totalDPA: number, interest: number, term: number): number {
-  const monthlyInterestRate = (interest / 100) / 12;
-  const numerator = Math.pow(1 + monthlyInterestRate, term * 12);
-  const denominator = numerator - 1;
-  return totalDPA * (monthlyInterestRate * numerator) / denominator;
+function qualifierDPAPayment(dpa: DownPaymentAssistance, salesPrice: number, loanAmount: number): number {
+  switch (dpa.type) {
+    case DPAPaymentType.IO:
+      return (loanAmount * dpa.paymentDetails.interestRate! / 12);
+    default:
+      throw new Error('Unsupported payment type for monthly qualifier');
+  }
 }
 ```
 
-### Detailed Explanation
-
-#### Types Definition
-- **`DPAPayment`**: 
-  - This union type represents different types of payments that can be part of a down payment assistance program. It includes:
-    - `fixed`: A fixed amount.
-    - `loan`: A loan with specified interest and term.
-    - `I/O`: Interest-only payment.
-    - `none`: No payment.
-
-- **`DPAParams`**:
-  - This interface specifies the structure for down payment assistance parameters, including optional fields such as name (`string`), type of DPA (one of `salesPrice`, `loanAmount`, or `fixed`), value (`number`), and associated payment details.
-
-#### Class Definition
-- **`DownPaymentAssistance`**:
-  - This class manages properties related to down payments, including `name`, `type` (defaulting to `salesPrice`), `value`, `fee`, and `payment`.
-  - The constructor initializes the object using optional parameters from the `DPAParams` interface. If no data is provided, it sets default values for each property.
-
-#### Utility Functions
-- **`calculateTotalDPA`**:
-  - This function computes the total DPA based on its type and value.
-    - For `salesPrice` or `loanAmount`, the total DPA is simply the value.
-    - For a `fixed` payment, it adds any associated fee to the value.
-
-- **`calculateDPAPayment`**:
-  - This function calculates the down payment amount using the total DPA and includes a base fee of 15%.
-
-- **`calculateDPALoanPayment`**:
-  - This function calculates the monthly loan payment for installment-based DPA.
-    - It uses the formula for an annuity to compute the monthly payment, taking into account the total DPA, interest rate, and term.
-
-### Summary
-
-- **`DownPaymentAssistance Class`**: Manages properties related to down payments and their associated details.
-- **Utility Functions**:
-  - `calculateTotalDPA`: Computes the total DPA based on its type and value.
-  - `calculateDPAPayment`: Computes the down payment amount using `calculateTotalDPA`.
-  - `calculateDPALoanPayment`: Calculates the monthly loan payment for installment-based DPA.
-
-These functions provide a comprehensive approach to managing and calculating different types of down payments, making it easier to integrate into various financial applications.
+This code provides the definitions and implementations of key components and functions necessary to calculate down payment assistance amounts based on different criteria.
 
 
 
@@ -146,122 +128,43 @@ Below is the repository structure along with a brief summary of each folder and 
 
 ```
 
-### /Users/ethan/Desktop/Development/commentRepository/tests/
-### Comprehensive Comment
+### /Users/ethan/Desktop/Development/commentRepository/tests
+The folder contains code related to calculating Down Payment Assistance (DPA) amounts based on different criteria. Here's a summary of the key components:
 
-The code contains definitions for a `DownPaymentAssistance` class and related utility functions that calculate various aspects of down payment assistance (DPA) based on the properties of a given DPA object. The comments provide detailed explanations for each function, parameter, and return value.
+1. **DPAPayment Type**:
+   - Defines the structure for different types of DPA payments, including `fixed`, `loan`, and `I/O` payment types.
 
-#### File Summary:
+2. **DPAParams Type**:
+   - Defines a type for parameters related to down payment assistance, including fields like name, type, value, and payment details.
 
-1. **Types Definition**:
-   - Defines a union type `DPAPayment` representing different types of payments: fixed amount, loan with interest and term, installment (I/O), or none.
-   - Defines an interface `DPAParams` to specify the structure for down payment assistance parameters, including optional fields such as name, DPA type (`salesPrice`, `loanAmount`, or `fixed`), value, and associated payment.
+3. **DownPaymentAssistance Class**:
+   - Represents an object that contains the details of DPA, such as its name, type, value, and payment structure.
 
-2. **Class Definition**:
-   - The class `DownPaymentAssistance` manages properties like name, type, value, fee, and payment.
-   - A constructor initializes the object using optional parameters from the `DPAParams` interface.
-   - If no data is provided to the constructor, it sets default values for each property.
+4. **Functions**:
+   - **`calculateTotalDPA`**:
+     - Purpose: Calculates the total DPA based on the specified type and values.
+     - Parameters: `dpa: DownPaymentAssistance`, `salesPrice: number`, `loanAmount: number`.
+     - Returns: The calculated total DPA as a number.
 
-3. **Utility Functions**:
-   - **`calculateTotalDPA`**: Computes the total DPA based on its type and value.
-   - **`calculateDPAPayment`**: Computes the down payment amount using `calculateTotalDPA`.
-   - **`calculateDPALoanPayment`**: Calculates the monthly loan payment if applicable.
+   - **`calculateDPAPayment`**:
+     - Purpose: Calculates the DPA payment amount based on the given DPA object, sales price, and loan amount.
+     - Parameters: `dpa: DownPaymentAssistance`, `salesPrice: number`, `loanAmount: number`.
+     - Returns: The calculated DPA payment amount as a number.
 
-### Code Snippets:
+   - **`qualifierDPAPayment`**:
+     - Purpose: Calculates the monthly payment amount for DPA based on provided details.
+     - Parameters: `dpa: DownPaymentAssistance`, `salesPrice: number`, `loanAmount: number`.
+     - Returns: The calculated monthly payment amount as a number.
 
-```typescript
-// Define the payment types
-export type DPAPayment = 
-  | { paymentType: 'fixed'; amount: number }
-  | { paymentType: 'loan'; interest: number; term: number }
-  | { paymentType: 'I/O'; interest: number; term: number }
-  | { paymentType: 'none' };
+### Summary of Functions and Their Purposes:
+- **`calculateTotalDPA`**: Computes the total DPA based on the type (sales price, loan amount, or fixed) and value.
+- **`calculateDPAPayment`**: Determines the specific DPA payment amount, which can be `fixed`, `loan`, or `I/O`.
+- **`qualifierDPAPayment`**: Calculates a monthly payment for DPA using an interest-only (I/O) payment type.
 
-// Define the parameters for down payment assistance
-export type DPAParams = {
-  name?: string;
-  type?: 'salesPrice' | 'loanAmount' | 'fixed';
-  value?: number;
-  payment?: DPAPayment;
-};
-
-// Class to manage down payment assistance details
-export class DownPaymentAssistance {
-  public name: string = '';
-  public type: 'salesPrice' | 'loanAmount' | 'fixed' = 'salesPrice';
-  public value: number = 0;
-  public fee: number = 0;
-  public payment: DPAPayment = { 
-    paymentType: 'fixed', 
-    amount: 0 
-  };
-
-  // Constructor to initialize the object with optional parameters
-  constructor(data?: DPAParams) {
-    if (data != null) {
-      Object.assign(this, data);
-    }
-  }
-}
-
-// Utility function to calculate total down payment assistance based on type and value
-export function calculateTotalDPA(dpa: DownPaymentAssistance): number {
-  switch (dpa.type) {
-    case 'salesPrice':
-      return dpa.value;
-    case 'loanAmount':
-      return dpa.value;
-    case 'fixed':
-      return dpa.value + dpa.fee; // Assuming fee is added to fixed DPA
-    default:
-      return 0;
-  }
-}
-
-// Utility function to calculate down payment amount using total DPA
-export function calculateDPAPayment(totalDPA: number): number {
-  const baseFee = totalDPA * 0.15; // Example base fee calculation (15%)
-  return Math.round((totalDPA + baseFee) / 100) * 100;
-}
-
-// Utility function to calculate loan payment for installment-based DPA
-export function calculateDPALoanPayment(totalDPA: number, interestRate: number, termInMonths: number): number {
-  const monthlyInterestRate = interestRate / 1200; // Convert annual rate to monthly
-  const numerator = Math.pow(1 + monthlyInterestRate, termInMonths);
-  const denominator = numerator - 1;
-  if (denominator === 0) return totalDPA / termInMonths; // Avoid division by zero
-
-  return (totalDPA * monthlyInterestRate * numerator) / denominator;
-}
-```
-
-### Explanation:
-
-- **DPAPayment Type**: Defines the different types of down payment payments, including fixed amounts, loans with interest and term, installment-based DPA, and none.
-  
-- **DPAParams Interface**: Specifies the structure for parameters used to configure a `DownPaymentAssistance` object. It includes optional fields such as name, type (`salesPrice`, `loanAmount`, or `fixed`), value, and an associated payment.
-
-- **DownPaymentAssistance Class**:
-  - Properties include `name`, `type` (defaulting to `salesPrice`), `value`, `fee`, and `payment`.
-  - The constructor allows initializing the object with a set of parameters. If no data is provided, it initializes each property with default values.
-
-- **Utility Functions**:
-  - **`calculateTotalDPA`**: Computes the total DPA based on its type and value.
-  - **`calculateDPAPayment`**: Computes the down payment amount using `calculateTotalDPA`.
-  - **`calculateDPALoanPayment`**: Calculates the monthly loan payment for installment-based DPA.
-
-### Summary
-
-- **`DownPaymentAssistance Class`**: Manages properties related to down payments and their associated details.
-- **Utility Functions**:
-  - `calculateTotalDPA`: Computes the total DPA based on its type and value.
-  - `calculateDPAPayment`: Computes the down payment amount using `calculateTotalDPA`.
-  - `calculateDPALoanPayment`: Calculates the monthly loan payment for installment-based DPA.
-
-These functions provide a comprehensive approach to managing and calculating different types of down payments, making it easier to integrate into various financial applications.
+These functions work together to provide comprehensive calculations for different aspects of down payment assistance in financial transactions.
 
 
 
 ---
 
-*Generated by Ollama (rZXQTa) on 2025-02-23 23:18:26*
+*Generated by Ollama (H8Y1eg) on 2025-02-24 00:26:19*

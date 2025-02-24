@@ -1,15 +1,15 @@
 import { DownPaymentAssistance } from './downPaymentAssistance';
 
 /**
- * This function calculates the total Down Payment Assistance (DPA) based on the given parameters.
+ * Returns the total Down Payment Assistance based on the given type and value.
  *
- * @param dpa {DownPaymentAssistance} The object containing the type and value of the down payment assistance.
- * @param salesPrice {number} The sales price of the property being purchased.
- * @param loanAmount {number} The loan amount for the mortgage.
+ * @param dpa {DownPaymentAssistance} The Down Payment Assistance object containing the type and value.
+ * @param salesPrice {number} The sales price of the property.
+ * @param loanAmount {number} The loan amount for the property.
  *
- * @returns { number } The calculated total down payment assistance as a number.
+ * @returns { number } The calculated total Down Payment Assistance.
  *
- * @generated X4PFeu v1.3 Generated on: 2025-02-23 22:52:21 by Ollama
+ * @generated 3KdWIc v1.5 Generated on: 2025-02-24 00:24:49 by Ollama
  */
 export function calculateTotalDPA(dpa: DownPaymentAssistance, salesPrice: number, loanAmount: number): number {
   let totalDPA: number;
@@ -32,15 +32,15 @@ export function calculateTotalDPA(dpa: DownPaymentAssistance, salesPrice: number
 }
 
 /**
- * Returns the down payment amount based on the given DownPaymentAssistance object and sales price, loan amount.
+ * Returns the Down Payment Assistance (DPA) payment amount based on the given DPA object, sales price, and loan amount.
  *
- * @param dpa {DownPaymentAssistance} An object containing details of the down payment assistance including its type and terms.
- * @param salesPrice {number} The total sales price of the property.
- * @param loanAmount {number} The loan amount being considered for financing.
+ * @param dpa {DownPaymentAssistance} The Down Payment Assistance configuration object.
+ * @param salesPrice {number} The sales price of the vehicle or property.
+ * @param loanAmount {number} The loan amount for the transaction.
  *
- * @returns { number } The calculated down payment amount based on the input parameters and conditions specified in the DownPaymentAssistance object.
+ * @returns { number } The calculated DPA payment amount.
  *
- * @generated fnVHaq v1.3 Generated on: 2025-02-23 22:52:31 by Ollama
+ * @generated h8TEok v1.5 Generated on: 2025-02-24 00:24:54 by Ollama
  */
 export function calculateDPAPayment(dpa: DownPaymentAssistance, salesPrice: number, loanAmount: number): number {
   const totalDPA = calculateTotalDPA(dpa, salesPrice, loanAmount);
@@ -66,15 +66,15 @@ export function calculateDPAPayment(dpa: DownPaymentAssistance, salesPrice: numb
 }
 
 /**
- * Returns the monthly payment amount for a Down Payment Assistance (DPA) loan based on the given parameters.
+ * Returns the monthly payment amount for a Down Payment Assistance (DPA) based on the provided DPA details, sales price, and loan amount.
  *
- * @param dpa {DownPaymentAssistance} The Down Payment Assistance object containing details about the assistance. (default: N/A)
- * @param salesPrice {number} The sales price of the property being purchased. (default: N/A)
- * @param loanAmount {number} The loan amount for the DPA assistance. (default: N/A)
+ * @param dpa {DownPaymentAssistance} The Down Payment Assistance object containing the payment details.
+ * @param  {number} The sales price of the property or item.
+ * @param  {number} The loan amount for the DPA.
  *
- * @returns { number } The calculated monthly payment amount or 0 if the payment type is not 'I/O'.
+ * @returns { number } The calculated monthly payment amount based on the provided parameters.
  *
- * @generated 8zK5sI v1.5 Generated on: 2025-02-23 22:53:15 by Ollama
+ * @generated tQUNMT v1.7 Generated on: 2025-02-24 00:25:00 by Ollama
  */
 export function qualifierDPAPayment(dpa: DownPaymentAssistance, salesPrice: number, loanAmount: number): number {
   const totalDPA = calculateTotalDPA(dpa, salesPrice, loanAmount);
