@@ -12,7 +12,7 @@ def process_repository(
     inference: InferenceBase, comment_formatter: CommentFormatter, readme_formatter: ReadmeFormatter, repo_path: str
 ):
     """Recursively process all eligible files in a repository, generating READMEs bottom-up."""
-    EXCLUDED_DIRS = {"node_modules", "dist", "build", "venv", "__pycache__"}
+    EXCLUDED_DIRS = {"node_modules", "dist", "build", "venv", "__pycache__", ".next"}
     ELIGIBLE_EXTENSIONS = {".ts", ".tsx"}
 
     print(colored(f"Scanning repository: {repo_path}", "yellow"))
