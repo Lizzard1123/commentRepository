@@ -76,15 +76,27 @@ def _summarize_files(inference: InferenceBase, repo_path: str) -> dict:
 def _summarize_folders(
     inference: InferenceBase, repo_path: str, file_summaries: dict
 ) -> dict:
-    """Generate summaries for folders, using file summaries first before summarizing subfolders."""
+    """Generate summaries for folders, using existing README.md files if available; otherwise, summarize their files."""
     folder_summaries = {}
 
     print(colored("📁 Summarizing folders...", "blue"))
     for root, dirs, _ in os.walk(repo_path, topdown=False):
+        readme_path = os.path.join(root, "README.md")
+        if os.path.exists(readme_path):
+            try:
+                with open(readme_path, "r", encoding="utf-8") as f:
+                    readme_content = f.read()
+                print(colored(f"📖 Using README.md for folder: {root}", "magenta"))
+                folder_summary = inference.generate(
+                    f"Summarize the following README file:\n{readme_content}"
+                )
+                folder_summaries[root] = folder_summary
+                continue  # Skip processing individual files if README.md exists
+            except Exception as e:
+                print(colored(f"⚠️ Error reading {readme_path}: {e}", "red"))
         content_summaries = [
             file_summaries[path] for path in file_summaries if path.startswith(root)
         ]
-
         if not content_summaries:
             continue
 
@@ -98,7 +110,6 @@ def _summarize_folders(
 
     print(colored("✅ Completed folder summaries.", "green"))
     return folder_summaries
-
 
 def _summarize_repository(
     inference: InferenceBase, repo_name: str, folder_summaries: dict
