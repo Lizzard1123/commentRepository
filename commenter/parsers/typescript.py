@@ -12,7 +12,7 @@ class TypeScriptParser:
     def _create_ast_generator_script() -> str:
         """Create a temporary TypeScript script that generates AST information."""
         return """
-const ts = require('typescript');
+    const ts = require('typescript');
 const fs = require('fs');
 
 const fileName = process.argv[2];
@@ -40,7 +40,37 @@ function extractElements(node) {
     function visit(node) {
         let element = null;
         
-        if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+        // Handle variable declarations with arrow functions, function expressions
+        if (ts.isVariableStatement(node)) {
+            node.declarationList.declarations.forEach(declaration => {
+                if (declaration.initializer && 
+                    (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer))) {
+                    const name = declaration.name.getText();
+                    const pos = getNodePosition(node);
+                    const params = declaration.initializer.parameters.map(p => ({
+                        name: p.name.getText(),
+                        type: p.type ? p.type.getText() : 'any'
+                    }));
+                    
+                    element = {
+                        type: 'function',
+                        name,
+                        pos,
+                        params,
+                        isAsync: declaration.initializer.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || false,
+                        returnType: declaration.initializer.type ? declaration.initializer.type.getText() : 'any'
+                    };
+                    
+                    elements.push(element);
+                }
+            });
+            
+            // Continue to check child nodes
+            ts.forEachChild(node, visit);
+            return;
+        }
+        
+        if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
             const name = node.name ? node.name.getText() : 'anonymous';
             const pos = getNodePosition(node);
             const params = node.parameters.map(p => ({

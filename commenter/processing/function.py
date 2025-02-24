@@ -26,6 +26,9 @@ def process_element(
         )
         if comment_slug != slug:
             continue
+        if name == "anonymous":
+            print(colored("Skipping anonymous function", "yellow"))
+            continue
 
         updated_lines, insertion_offsets = insert_comment(
             inference, formatter, file_path, lines, name, element_code, metadata
@@ -69,6 +72,9 @@ def process_file(inference: InferenceBase, formatter: CommentFormatter, file_pat
     insertion_offsets = 0
 
     for element_name, element_code, metadata in elements:
+        if element_name == "anonymous":
+            print(colored("Skipping anonymous function", "yellow"))
+            continue
         updated_lines, insertion_offsets = insert_comment(
             inference,
             formatter,
@@ -134,9 +140,14 @@ def insert_comment(
     )
 
     prompt = formatter.create_prompt(element_code, context=context)
-    raw_comment = inference.generate(prompt)
-    formatted_comment = formatter.format_comment(raw_comment, previous_comment_text, metadata)
-
+    formatted_comment = "None"
+    retry_count = 0
+    while(formatted_comment == "None" and retry_count < 3):
+        retry_count += 1
+        raw_comment = inference.generate(prompt)
+        formatted_comment = formatter.format_comment(raw_comment, previous_comment_text, metadata)
+    if formatted_comment == "None":
+        return "", insertion_offsets
     # Detect indentation level from element line
     element_line = lines[start_line]
     indentation = element_line[: len(element_line) - len(element_line.lstrip())]

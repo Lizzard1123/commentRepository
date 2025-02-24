@@ -3,6 +3,8 @@ import random
 import string
 from typing import Dict, List, Optional
 import xml.etree.ElementTree as ET
+from termcolor import colored
+
 
 class CommentFormatter:
     """Formats comments for TypeScript code with consistent structure and metadata."""
@@ -38,10 +40,35 @@ class CommentFormatter:
         result = {"name": "", "description": "", "parameters": [], "returns": {}}
 
         try:
-            root = ET.fromstring(inference_output)
+            # Pre-process XML to escape angle brackets in all relevant tags
+            import re
+
+            # List of tag names that might contain angle brackets
+            tags_to_process = ["type", "name", "description"]
+
+            processed_xml = inference_output
+
+            # Process each tag type
+            for tag in tags_to_process:
+                pattern = f"<{tag}>(.*?)</{tag}>"
+
+                def replace_content(match):
+                    content = match.group(1)
+                    escaped_content = content.replace("<", "&lt;").replace(">", "&gt;")
+                    return f"<{tag}>{escaped_content}</{tag}>"
+
+                processed_xml = re.sub(pattern, replace_content, processed_xml)
+
+            root = ET.fromstring(processed_xml)
 
             result["name"] = root.findtext("name", "").strip()
             result["description"] = root.findtext("description", "").strip()
+            result["type"] = root.findtext("type", "").strip()
+
+            # Get isAsync value if present
+            is_async = root.findtext("isAsync", "").strip()
+            if is_async:
+                result["isAsync"] = is_async.lower() == "true"
 
             # Extract parameters
             parameters = root.find("parameters")
@@ -50,7 +77,7 @@ class CommentFormatter:
                     param_data = {
                         "name": param.findtext("name", "").strip(),
                         "type": param.findtext("type", "").strip(),
-                        "description": param.findtext("description", "").strip()
+                        "description": param.findtext("description", "").strip(),
                     }
                     result["parameters"].append(param_data)
 
@@ -59,7 +86,7 @@ class CommentFormatter:
             if returns is not None:
                 result["returns"] = {
                     "type": returns.findtext("type", "").strip(),
-                    "description": returns.findtext("description", "").strip()
+                    "description": returns.findtext("description", "").strip(),
                 }
 
         except ET.ParseError as e:
@@ -68,7 +95,10 @@ class CommentFormatter:
         return result
 
     def format_comment(
-        self, inference_output: str, previous_comment: Optional[str] = None, metadata: dict = None
+        self,
+        inference_output: str,
+        previous_comment: Optional[str] = None,
+        metadata: dict = None,
     ) -> str:
         """
         Format the inference output into a TypeScript comment with metadata, maintaining versioning.
@@ -82,13 +112,19 @@ class CommentFormatter:
             str: Formatted TypeScript comment
         """
         parsed = self._parse_inference_output(inference_output)
+        if parsed["description"] == "":
+            print(parsed)
+            print(inference_output)
+            print(colored(f"Could not parse, will not format, trying again", "red"))
+            return "None"
         slug = self._generate_slug()
 
         # Extract previous version if available
         version = "v1.0"
         if previous_comment:
             import re
-            match = re.search(r'@generated\s+\w+\s+(v\d+\.\d+)', previous_comment)
+
+            match = re.search(r"@generated\s+\w+\s+(v\d+\.\d+)", previous_comment)
             if match:
                 prev_version = match.group(1)
                 major, minor = map(int, prev_version[1:].split("."))
@@ -101,15 +137,21 @@ class CommentFormatter:
         # Add parameters if applicable
         if parsed["parameters"]:
             for param in parsed["parameters"]:
-                comment_lines.append(f' * @param {param["name"]} {{{param["type"]}}} {param["description"]}')
+                comment_lines.append(
+                    f' * @param {param["name"]} {{{param["type"]}}} {param["description"]}'
+                )
             comment_lines.append(" *")
 
         # Include return type only for functions
-        if metadata and metadata.get("type") == "function" and parsed["returns"].get("type") != "void":
+        if (
+            metadata
+            and metadata.get("type") == "function"
+            and parsed["returns"].get("type") != "void"
+        ):
             return_type = parsed["returns"].get("type", "").strip()
             return_desc = parsed["returns"].get("description", "").strip()
             if return_type:
-                comment_lines.append(f' * @returns {{ {return_type} }} {return_desc}')
+                comment_lines.append(f" * @returns {{ {return_type} }} {return_desc}")
                 comment_lines.append(" *")
 
         # Indicate if the function is async
