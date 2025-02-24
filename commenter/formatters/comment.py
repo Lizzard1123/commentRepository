@@ -2,7 +2,11 @@ from datetime import datetime
 import random
 import string
 from typing import Dict, List, Optional
-
+from datetime import datetime
+import random
+import string
+from typing import Dict, List, Optional
+import xml.etree.ElementTree as ET
 
 class CommentFormatter:
     """Formats comments for TypeScript code with consistent structure and metadata."""
@@ -27,78 +31,44 @@ class CommentFormatter:
 
     def _parse_inference_output(self, inference_output: str) -> Dict:
         """
-        Parse the raw inference output into structured components.
-        Expected format from inference:
-        - Name: <function name>
-        - Description: <description>
-        - Parameters:
-        - param1: <description> [default: <value>]
-        - param2: <description>
-        - Returns: <return description>
+        Parse the AI inference XML output into structured components.
+
+        Args:
+            inference_output (str): AI-generated XML string.
+
+        Returns:
+            Dict: Structured representation of the function details.
         """
-        lines = inference_output.strip().split("\n")
-        result = {"name": "", "description": "", "parameters": [], "returns": ""}
+        result = {"name": "", "description": "", "parameters": [], "returns": {}}
 
-        current_section = None
+        try:
+            root = ET.fromstring(inference_output)
 
-        for line in lines:
-            line = line.strip()
+            result["name"] = root.findtext("name", "").strip()
+            result["description"] = root.findtext("description", "").strip()
 
-            # Skip empty lines
-            if not line:
-                continue
+            # Extract parameters
+            parameters = root.find("parameters")
+            if parameters is not None:
+                for param in parameters.findall("param"):
+                    param_data = {
+                        "name": param.findtext("name", "").strip(),
+                        "type": param.findtext("type", "").strip(),
+                        "description": param.findtext("description", "").strip(),
+                        "default": param.findtext("default", "").strip() or None
+                    }
+                    result["parameters"].append(param_data)
 
-            # Handle main sections
-            if line.startswith("- Name:"):
-                current_section = "name"
-                result["name"] = line.replace("- Name:", "").strip()
-            elif line.startswith("- Description:"):
-                current_section = "description"
-                result["description"] = line.replace("- Description:", "").strip()
-            elif line.startswith("- Parameters:"):
-                current_section = "parameters"
-                buffer = []  # Reset buffer for parameters
-            elif line.startswith("- Returns:"):
-                current_section = "returns"
-                result["returns"] = line.replace("- Returns:", "").strip()
-            # Handle parameter entries
-            elif line.startswith("  -") and current_section == "parameters":
-                param_line = line.replace("  -", "").strip()
+            # Extract return value
+            returns = root.find("returns")
+            if returns is not None:
+                result["returns"] = {
+                    "type": returns.findtext("type", "").strip(),
+                    "description": returns.findtext("description", "").strip()
+                }
 
-                # Split on first colon to separate name and description
-                param_parts = param_line.split(":", 1)
-                if len(param_parts) == 2:
-                    param_name = param_parts[0].strip()
-                    param_desc = param_parts[1].strip()
-
-                    # Parse type information if present
-                    param_type = None
-                    if "," in param_desc:
-                        type_parts = param_desc.split(",", 1)
-                        param_type = type_parts[0].strip()
-                        param_desc = type_parts[1].strip()
-
-                    # Check for default value
-                    default_value = None
-                    if "[default:" in param_desc:
-                        desc_parts = param_desc.split("[default:")
-                        param_desc = desc_parts[0].strip()
-                        default_value = desc_parts[1].strip("]").strip()
-
-                    result["parameters"].append(
-                        {
-                            "name": param_name,
-                            "description": param_desc,
-                            "type": param_type,
-                            "default": default_value,
-                        }
-                    )
-            # Append to current section for multi-line content
-            elif current_section and not line.startswith("-"):
-                if current_section == "description":
-                    result["description"] += " " + line
-                elif current_section == "returns":
-                    result["returns"] += " " + line
+        except ET.ParseError as e:
+            print(f"XML Parsing Error: {e}")
 
         return result
 
@@ -122,7 +92,7 @@ class CommentFormatter:
         # Add parameters
         if parsed["parameters"]:
             for param in parsed["parameters"]:
-                param_line = f' * @param {param["name"]} {param["description"]}'
+                param_line = f' * @param {param["name"]} {{{param["type"]}}} {param["description"]}'
                 if param["default"]:
                     param_line += f' (default: {param["default"]})'
                 comment_lines.append(param_line)
@@ -130,7 +100,9 @@ class CommentFormatter:
 
         # Add return value
         if parsed["returns"]:
-            comment_lines.append(f' * @returns {parsed["returns"]}')
+            return_type = parsed["returns"].get("type", "unknown")
+            return_desc = parsed["returns"].get("description", "No description provided.")
+            comment_lines.append(f' * @returns {{ {return_type} }} {return_desc}')
             comment_lines.append(" *")
 
         # Add metadata
@@ -143,7 +115,7 @@ class CommentFormatter:
 
     def create_prompt(self, code: str, context: Optional[str] = None) -> str:
         """
-        Create a standardized prompt for inference services.
+        Create a standardized prompt for inference services using XML format.
 
         Args:
             code (str): The TypeScript code to analyze
@@ -152,16 +124,31 @@ class CommentFormatter:
         Returns:
             str: Formatted prompt
         """
-        return f"""Please analyze this TypeScript code and provide a structured response with the following sections:
-        - Name: The function name
-        - Description: A clear, concise description of what the function does
-        - Parameters: List each parameter with its description and default value (if any)
-        - Returns: Description of the return value
+        return f"""Analyze the following TypeScript function and generate a structured XML response with the following format:
+        
+        <function>
+            <name>function_name</name>
+            <description>Brief description of what the function does.</description>
+            <parameters>
+                <param>
+                    <name>param_name</name>
+                    <type>param_type</type>
+                    <description>Detailed description of the parameter.</description>
+                    <default>default_value (do not include this tag if not included in the function)</default>
+                </param>
+                ...
+            </parameters>
+            <returns>
+                <type>return_type</type>
+                <description>Detailed description of the return value.</description>
+            </returns>
+        </function>
 
         Code:
         {code}
 
         Additional Context:
+        Keep responses concise, put important information, focus on how the variable is used within the code
         {context if context else 'No additional context provided'}
 
-        Please provide only the structured information without any additional formatting or explanations."""
+        Please return only the XML response without any additional formatting or explanations."""
