@@ -120,10 +120,10 @@ def insert_comment(
         comment_start -= 1
 
     previous_comment_text = "".join(previous_comment) if previous_comment else None
-
+    # print(metadata)
     param_strings = [
         f"{param.get('name', 'unknown')}: {param.get('type', 'unknown')}"
-        for param in metadata.get("parameters", [])
+        for param in metadata.get("params", [])
     ]
     params_str = ", ".join(param_strings)
 
@@ -138,7 +138,7 @@ def insert_comment(
         f"\nStart Line: {metadata.get('pos', {}).get('startLine', 'unknown')}\n"
         f"End Line: {metadata.get('pos', {}).get('endLine', 'unknown')}"
     )
-
+    # print(context)
     prompt = formatter.create_prompt(element_code, context=context)
     formatted_comment = "None"
     retry_count = 0

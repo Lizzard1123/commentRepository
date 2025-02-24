@@ -120,6 +120,7 @@ class CommentFormatter:
 
         # Extract previous slug and version if available
         slug = None
+        space = False
         version = "v1.0"
         if previous_comment:
             import re
@@ -144,7 +145,7 @@ class CommentFormatter:
 
         comment_lines = ["/**"]
         comment_lines.append(f' * {parsed["description"]}')
-        comment_lines.append(" *")
+        if space: comment_lines.append(" *")
 
         # Add parameters if applicable
         if parsed["parameters"]:
@@ -152,7 +153,7 @@ class CommentFormatter:
                 comment_lines.append(
                     f' * @param {param["name"]} {{{param["type"]}}} {param["description"]}'
                 )
-            comment_lines.append(" *")
+            if space: comment_lines.append(" *")
 
         # Include return type only for functions
         if (
@@ -164,12 +165,12 @@ class CommentFormatter:
             return_desc = parsed["returns"].get("description", "").strip()
             if return_type:
                 comment_lines.append(f" * @returns {{ {return_type} }} {return_desc}")
-                comment_lines.append(" *")
+                if space: comment_lines.append(" *")
 
         # Indicate if the function is async
         if metadata and metadata.get("isAsync"):
             comment_lines.append(" * @async")
-            comment_lines.append(" *")
+            if space: comment_lines.append(" *")
 
         # Add metadata with versioning
         comment_lines.append(
@@ -198,6 +199,7 @@ class CommentFormatter:
             <type>element_type (e.g., function, class, interface, type, etc.)</type>
             <isAsync>true/false (only if applicable)</isAsync>
             <parameters>
+                <!-- Do not include if there are no parameters in the context explicitly listed -->
                 <param>
                     <name>param_name</name>
                     <type>param_type</type>
