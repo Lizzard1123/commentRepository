@@ -72,18 +72,29 @@ class CommentFormatter:
 
         return result
 
-    def format_comment(self, inference_output: str) -> str:
+    def format_comment(self, inference_output: str, previous_comment: Optional[str] = None) -> str:
         """
-        Format the inference output into a TypeScript comment with metadata.
+        Format the inference output into a TypeScript comment with metadata, maintaining versioning.
 
         Args:
             inference_output (str): Raw output from the inference service
+            previous_comment (Optional[str]): The previous comment for version tracking
 
         Returns:
             str: Formatted TypeScript comment
         """
         parsed = self._parse_inference_output(inference_output)
         slug = self._generate_slug()
+
+        # Extract previous version if available
+        version = "v1.0"
+        if previous_comment:
+            import re
+            match = re.search(r'@generated\s+\w+\s+(v\d+\.\d+)', previous_comment)
+            if match:
+                prev_version = match.group(1)
+                major, minor = map(int, prev_version[1:].split("."))
+                version = f"v{major}.{minor + 1}"
 
         comment_lines = ["/**"]
         comment_lines.append(f' * {parsed["description"]}')
@@ -105,9 +116,9 @@ class CommentFormatter:
             comment_lines.append(f' * @returns {{ {return_type} }} {return_desc}')
             comment_lines.append(" *")
 
-        # Add metadata
+        # Add metadata with versioning
         comment_lines.append(
-            f" * @generated {slug} Generated on: {self._format_date()} by {self.model_name}"
+            f" * @generated {slug} {version} Generated on: {self._format_date()} by {self.model_name}"
         )
         comment_lines.append(" */")
 

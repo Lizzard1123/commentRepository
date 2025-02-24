@@ -3,6 +3,8 @@ from ..models.base import InferenceBase
 from ..formatters.comment import CommentFormatter
 from ..parsers.typescript import TypeScriptParser
 from termcolor import colored
+import re
+
 
 def process_functions(
     inference: InferenceBase, formatter: CommentFormatter, file_path: str
@@ -27,15 +29,27 @@ def process_functions(
     for func_name, func_code, metadata in functions:
         print(colored(f"Processing function: {func_name}", "cyan"))
 
-        # Remove old comment if present
+        # Extract old comment if present
         start_line = metadata["pos"]["startLine"] - 1 + insertion_offsets
-        while start_line > 0 and (updated_lines[start_line - 1].strip().startswith("/*") or updated_lines[start_line - 1].strip().startswith("*")):
-            del updated_lines[start_line - 1]
+        previous_comment = []
+        comment_start = start_line - 1
+
+        while comment_start >= 0 and (
+            updated_lines[comment_start].strip().startswith("/*")
+            or updated_lines[comment_start].strip().startswith("*")
+        ):
+            previous_comment.insert(0, updated_lines[comment_start])
+            del updated_lines[comment_start]
             start_line -= 1
             insertion_offsets -= 1
+            comment_start -= 1
+
+        previous_comment_text = "".join(previous_comment) if previous_comment else None
 
         # Format parameters as a string
-        param_strings = [f"{param['name']}: {param['type']}" for param in metadata["parameters"]]
+        param_strings = [
+            f"{param['name']}: {param['type']}" for param in metadata["parameters"]
+        ]
         params_str = ", ".join(param_strings)
 
         # Create context with TypeScript-specific information
@@ -52,8 +66,8 @@ def process_functions(
         prompt = formatter.create_prompt(func_code, context=context)
         raw_comment = inference.generate_comment(prompt)
 
-        # Format the comment
-        formatted_comment = formatter.format_comment(raw_comment)
+        # Format the comment with previous versioning
+        formatted_comment = formatter.format_comment(raw_comment, previous_comment_text)
 
         # Get the indentation of the function
         function_line = updated_lines[start_line]
