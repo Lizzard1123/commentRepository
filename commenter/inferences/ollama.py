@@ -28,7 +28,7 @@ class OllamaInference(InferenceBase):
 
         response = requests.post(
             f"{self.host}/api/generate",
-            json={"model": "codellama", "prompt": prompt, "stream": False},
+            json={"model": "llama3.2:1b", "prompt": prompt, "stream": False},
         )
 
         return response.json()["response"]
