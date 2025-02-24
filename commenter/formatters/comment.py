@@ -2,10 +2,6 @@ from datetime import datetime
 import random
 import string
 from typing import Dict, List, Optional
-from datetime import datetime
-import random
-import string
-from typing import Dict, List, Optional
 import xml.etree.ElementTree as ET
 
 class CommentFormatter:
@@ -54,8 +50,7 @@ class CommentFormatter:
                     param_data = {
                         "name": param.findtext("name", "").strip(),
                         "type": param.findtext("type", "").strip(),
-                        "description": param.findtext("description", "").strip(),
-                        "default": param.findtext("default", "").strip() or None
+                        "description": param.findtext("description", "").strip()
                     }
                     result["parameters"].append(param_data)
 
@@ -72,13 +67,16 @@ class CommentFormatter:
 
         return result
 
-    def format_comment(self, inference_output: str, previous_comment: Optional[str] = None) -> str:
+    def format_comment(
+        self, inference_output: str, previous_comment: Optional[str] = None, metadata: dict = None
+    ) -> str:
         """
         Format the inference output into a TypeScript comment with metadata, maintaining versioning.
 
         Args:
             inference_output (str): Raw output from the inference service
             previous_comment (Optional[str]): The previous comment for version tracking
+            metadata (dict): Metadata about the TypeScript element
 
         Returns:
             str: Formatted TypeScript comment
@@ -100,20 +98,23 @@ class CommentFormatter:
         comment_lines.append(f' * {parsed["description"]}')
         comment_lines.append(" *")
 
-        # Add parameters
+        # Add parameters if applicable
         if parsed["parameters"]:
             for param in parsed["parameters"]:
-                param_line = f' * @param {param["name"]} {{{param["type"]}}} {param["description"]}'
-                if param["default"]:
-                    param_line += f' (default: {param["default"]})'
-                comment_lines.append(param_line)
+                comment_lines.append(f' * @param {param["name"]} {{{param["type"]}}} {param["description"]}')
             comment_lines.append(" *")
 
-        # Add return value
-        if parsed["returns"]:
-            return_type = parsed["returns"].get("type", "unknown")
-            return_desc = parsed["returns"].get("description", "No description provided.")
-            comment_lines.append(f' * @returns {{ {return_type} }} {return_desc}')
+        # Include return type only for functions
+        if metadata and metadata.get("type") == "function" and parsed["returns"].get("type") != "void":
+            return_type = parsed["returns"].get("type", "").strip()
+            return_desc = parsed["returns"].get("description", "").strip()
+            if return_type:
+                comment_lines.append(f' * @returns {{ {return_type} }} {return_desc}')
+                comment_lines.append(" *")
+
+        # Indicate if the function is async
+        if metadata and metadata.get("isAsync"):
+            comment_lines.append(" * @async")
             comment_lines.append(" *")
 
         # Add metadata with versioning
@@ -135,31 +136,31 @@ class CommentFormatter:
         Returns:
             str: Formatted prompt
         """
-        return f"""Analyze the following TypeScript function and generate a structured XML response with the following format:
+        return f"""Analyze the following TypeScript element and generate a structured XML response with the following format:
         
-        <function>
-            <name>function_name</name>
-            <description>Brief description of what the function does.</description>
+        <element>
+            <name>element_name</name>
+            <description>Brief description of what this element does.</description>
+            <type>element_type (e.g., function, class, interface, type, etc.)</type>
+            <isAsync>true/false (only if applicable)</isAsync>
             <parameters>
                 <param>
                     <name>param_name</name>
                     <type>param_type</type>
                     <description>Detailed description of the parameter.</description>
-                    <default>default_value (do not include this tag if not included in the function)</default>
                 </param>
                 ...
             </parameters>
             <returns>
-                <type>return_type</type>
+                <type>return_type (omit if not a function)</type>
                 <description>Detailed description of the return value.</description>
             </returns>
-        </function>
+        </element>
+
+        Context:
+        {context if context else 'No additional context provided'}
 
         Code:
         {code}
-
-        Additional Context:
-        Keep responses concise, put important information, focus on how the variable is used within the code
-        {context if context else 'No additional context provided'}
 
         Please return only the XML response without any additional formatting or explanations."""

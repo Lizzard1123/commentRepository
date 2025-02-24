@@ -4,50 +4,44 @@ from ..formatters.comment import CommentFormatter
 from ..parsers.typescript import TypeScriptParser
 from termcolor import colored
 
-
-def process_function(
+def process_element(
     inference: InferenceBase,
     formatter: CommentFormatter,
     file_path: str,
-    func_slug: str,
+    slug: str,
 ):
-    """Processes a single function in a TypeScript file by adding/updating its comment using the function slug."""
+    """Processes an element (function, interface, class, type, etc.) in a TypeScript file by adding/updating its comment using the provided slug."""
     parser = TypeScriptParser()
 
     # Read file content
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    # Parse functions from file
-    functions = parser.parse_file(file_path)
+    # Parse elements from file
+    elements = parser.parse_file(file_path)
 
-    for name, func_code, metadata in functions:
+    for name, element_code, metadata in elements:
         comment_slug = extract_slug_from_comment(
-            lines, metadata["pos"]["startLine"] - 1
+            lines, metadata.get("pos", {}).get("startLine", 1) - 1
         )
-        if comment_slug != func_slug:
+        if comment_slug != slug:
             continue
 
         updated_lines, insertion_offsets = insert_comment(
-            inference, formatter, file_path, lines, name, func_code, metadata
+            inference, formatter, file_path, lines, name, element_code, metadata
         )
 
         # Write updated content back to the file
         with open(file_path, "w") as f:
             f.writelines(updated_lines)
 
-        print(
-            colored(
-                f"Processed function with slug: {func_slug} in {file_path}", "green"
-            )
-        )
+        print(colored(f"Processed element with slug: {slug} in {file_path}", "green"))
         return
 
-    print(colored(f"Function with slug {func_slug} not found in {file_path}", "red"))
-
+    print(colored(f"Element with slug {slug} not found in {file_path}", "red"))
 
 def extract_slug_from_comment(lines, start_line):
-    """Extracts the slug from the comment above the function."""
+    """Extracts the slug from the comment above an element."""
     for i in range(start_line - 1, -1, -1):
         line = lines[i].strip()
         if "@generated" in line:
@@ -57,32 +51,31 @@ def extract_slug_from_comment(lines, start_line):
                     return part
     return None
 
-
 def process_file(inference: InferenceBase, formatter: CommentFormatter, file_path: str):
-    """Processes all functions in a TypeScript file by adding/updating comments."""
+    """Processes all elements in a TypeScript file by adding/updating comments."""
     parser = TypeScriptParser()
 
     # Read file content
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    # Parse functions from file
-    functions = parser.parse_file(file_path)
-    if not functions:
-        print(colored(f"No functions found in {file_path}", "red"))
+    # Parse elements from file
+    elements = parser.parse_file(file_path)
+    if not elements:
+        print(colored(f"No elements found in {file_path}", "red"))
         return
 
     updated_lines = lines[:]
     insertion_offsets = 0
 
-    for func_name, func_code, metadata in functions:
+    for element_name, element_code, metadata in elements:
         updated_lines, insertion_offsets = insert_comment(
             inference,
             formatter,
             file_path,
             updated_lines,
-            func_name,
-            func_code,
+            element_name,
+            element_code,
             metadata,
             insertion_offsets,
         )
@@ -98,15 +91,15 @@ def insert_comment(
     formatter,
     file_path,
     lines,
-    func_name,
-    func_code,
+    element_name,
+    element_code,
     metadata,
     insertion_offsets=0,
 ):
-    """Inserts or updates a comment for a given function."""
-    print(colored(f"Processing function: {func_name}", "cyan"))
+    """Inserts or updates a comment for a given element (function, class, interface, type, etc.)."""
+    print(colored(f"Processing element: {element_name}", "cyan"))
 
-    start_line = metadata["pos"]["startLine"] - 1 + insertion_offsets
+    start_line = metadata.get("pos", {}).get("startLine", 1) - 1 + insertion_offsets
     previous_comment = []
     comment_start = start_line - 1
 
@@ -123,26 +116,30 @@ def insert_comment(
     previous_comment_text = "".join(previous_comment) if previous_comment else None
 
     param_strings = [
-        f"{param['name']}: {param['type']}" for param in metadata["parameters"]
+        f"{param.get('name', 'unknown')}: {param.get('type', 'unknown')}"
+        for param in metadata.get("parameters", [])
     ]
     params_str = ", ".join(param_strings)
 
     module_context = f"File: {os.path.basename(file_path)}"
     context = (
         f"{module_context}\n"
-        f"Function: {func_name}\n"
-        f"Return Type: {metadata['returnType']}\n"
-        f"Is Async: {metadata['isAsync']}\n"
+        f"Element: {element_name}\n"
+        f"Type: {metadata.get('type', 'unknown')}\n"
+        f"Return Type: {metadata.get('returnType', 'unknown')}\n"
+        f"Is Async: {metadata.get('isAsync', False)}\n"
         f"Parameters: {params_str}"
+        f"\nStart Line: {metadata.get('pos', {}).get('startLine', 'unknown')}\n"
+        f"End Line: {metadata.get('pos', {}).get('endLine', 'unknown')}"
     )
 
-    prompt = formatter.create_prompt(func_code, context=context)
-    raw_comment = inference.generate_comment(prompt)
-    formatted_comment = formatter.format_comment(raw_comment, previous_comment_text)
+    prompt = formatter.create_prompt(element_code, context=context)
+    raw_comment = inference.generate(prompt)
+    formatted_comment = formatter.format_comment(raw_comment, previous_comment_text, metadata)
 
-    # Detect indentation level from function line
-    function_line = lines[start_line]
-    indentation = function_line[: len(function_line) - len(function_line.lstrip())]
+    # Detect indentation level from element line
+    element_line = lines[start_line]
+    indentation = element_line[: len(element_line) - len(element_line.lstrip())]
 
     # Apply detected indentation to each line of the comment
     comment_lines = [(indentation + line).rstrip() + "\n" for line in formatted_comment.split("\n")]

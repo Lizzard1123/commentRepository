@@ -6,15 +6,14 @@ class InferenceBase(ABC):
     """Base class for AI inference implementations."""
 
     @abstractmethod
-    def generate_comment(self, code: str, context: Optional[str] = None) -> str:
+    def generate(self, prompt: str) -> str:
         """
-        Generate a comment for the given code snippet.
+        Generate a response via a LLM
 
         Args:
-            code (str): The code to comment
-            context (Optional[str]): Additional context about the code
+            code (str): The question
 
         Returns:
-            str: Generated comment
+            str: Generated text
         """
         pass

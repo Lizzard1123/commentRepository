@@ -61,7 +61,7 @@ def _summarize_files(inference: InferenceBase, repo_path: str) -> dict:
                     content = f.read()
 
                 print(colored(f"🔍 Processing file: {file_path}", "magenta"))
-                summary = inference.generate_comment(
+                summary = inference.generate(
                     f"Summarize this file. Only include code snippets if absolutely necessary:\n\n{content}"
                 )
                 file_summaries[file_path] = summary
@@ -90,7 +90,7 @@ def _summarize_folders(
 
         context = "\n".join(content_summaries)
         print(colored(f"📦 Processing folder: {root}", "magenta"))
-        folder_summary = inference.generate_comment(
+        folder_summary = inference.generate(
             f"Summarize the purpose of this folder based on its files:\n{context}"
         )
 
@@ -107,7 +107,7 @@ def _summarize_repository(
     full_context = "\n".join(folder_summaries.values())
 
     print(colored("📝 Generating final repository summary...", "yellow"))
-    summary = inference.generate_comment(
+    summary = inference.generate(
         f"Summarize the repository '{repo_name}' based on the following folder summaries. Only include code snippets if they are crucial:\n{full_context}"
     )
 

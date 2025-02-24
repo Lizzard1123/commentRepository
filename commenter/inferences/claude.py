@@ -15,17 +15,7 @@ class ClaudeInference(InferenceBase):
         """
         self.client = anthropic.Client(api_key=api_key)
 
-    def generate_comment(self, code: str, context: Optional[str] = None) -> str:
-        prompt = f"""Please provide a comprehensive comment for the following code.
-        If context is provided, incorporate it into the comment.
-
-        Code:
-        {code}
-
-        Context:
-        {context if context else 'No additional context provided'}
-        """
-
+    def generate(self, prompt: str) -> str:
         response = self.client.messages.create(
             model="claude-3-opus-20240229",
             max_tokens=1000,

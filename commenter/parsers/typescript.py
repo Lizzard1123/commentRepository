@@ -6,7 +6,7 @@ import tempfile
 
 
 class TypeScriptParser:
-    """Parser for TypeScript files to extract function information."""
+    """Parser for TypeScript files to extract function, class, type, and interface information."""
 
     @staticmethod
     def _create_ast_generator_script() -> str:
@@ -34,15 +34,13 @@ function getNodePosition(node) {
     };
 }
 
-function extractFunctions(node) {
-    const functions = [];
+function extractElements(node) {
+    const elements = [];
     
     function visit(node) {
-        if (ts.isFunctionDeclaration(node) || 
-            ts.isMethodDeclaration(node) || 
-            ts.isArrowFunction(node) ||
-            ts.isFunctionExpression(node)) {
-            
+        let element = null;
+        
+        if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
             const name = node.name ? node.name.getText() : 'anonymous';
             const pos = getNodePosition(node);
             const params = node.parameters.map(p => ({
@@ -50,25 +48,47 @@ function extractFunctions(node) {
                 type: p.type ? p.type.getText() : 'any'
             }));
             
-            functions.push({
+            element = {
+                type: 'function',
                 name,
-                kind: node.kind,
                 pos,
                 params,
                 isAsync: node.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || false,
                 returnType: node.type ? node.type.getText() : 'any'
-            });
+            };
+        } else if (ts.isClassDeclaration(node) && node.name) {
+            element = {
+                type: 'class',
+                name: node.name.getText(),
+                pos: getNodePosition(node)
+            };
+        } else if (ts.isTypeAliasDeclaration(node)) {
+            element = {
+                type: 'type',
+                name: node.name.getText(),
+                pos: getNodePosition(node)
+            };
+        } else if (ts.isInterfaceDeclaration(node)) {
+            element = {
+                type: 'interface',
+                name: node.name.getText(),
+                pos: getNodePosition(node)
+            };
+        }
+        
+        if (element) {
+            elements.push(element);
         }
         
         ts.forEachChild(node, visit);
     }
     
     visit(sourceFile);
-    return functions;
+    return elements;
 }
 
-const functions = extractFunctions(sourceFile);
-console.log(JSON.stringify(functions, null, 2));
+const elements = extractElements(sourceFile);
+console.log(JSON.stringify(elements, null, 2));
 """
 
     @staticmethod
@@ -79,27 +99,23 @@ console.log(JSON.stringify(functions, null, 2));
 
     def parse_file(self, file_path: str) -> List[Tuple[str, str, dict]]:
         """
-        Parse a TypeScript file and extract function information.
+        Parse a TypeScript file and extract function, class, type, and interface information.
 
         Args:
             file_path (str): Path to the TypeScript file
 
         Returns:
             List[Tuple[str, str, dict]]: List of tuples containing
-                (function_name, function_code, metadata)
+                (element_name, element_code, metadata)
         """
-        # Create temporary directory for our parser script
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create the parser script
             parser_path = os.path.join(temp_dir, "parser.js")
             with open(parser_path, "w") as f:
                 f.write(self._create_ast_generator_script())
 
-            # Read the original file content
             with open(file_path, "r") as f:
                 file_content = f.read()
 
-            # Run the parser script
             try:
                 result = subprocess.run(
                     ["node", parser_path, file_path],
@@ -107,24 +123,16 @@ console.log(JSON.stringify(functions, null, 2));
                     text=True,
                     check=True,
                 )
-                functions_data = json.loads(result.stdout)
+                elements_data = json.loads(result.stdout)
             except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
                 raise Exception(f"Failed to parse TypeScript file: {str(e)}")
 
-            # Extract function information
-            functions = []
-            for func in functions_data:
+            elements = []
+            for elem in elements_data:
                 code = self._extract_code_segment(
-                    file_content, func["pos"]["startLine"], func["pos"]["endLine"]
+                    file_content, elem["pos"]["startLine"], elem["pos"]["endLine"]
                 )
+                metadata = {k: v for k, v in elem.items()}
+                elements.append((elem["name"], code, metadata))
 
-                metadata = {
-                    **func,
-                    "isAsync": func["isAsync"],
-                    "parameters": func["params"],
-                    "returnType": func["returnType"],
-                }
-
-                functions.append((func["name"], code, metadata))
-
-            return functions
+            return elements

@@ -8,7 +8,7 @@ from commenter.inferences.ollama import OllamaInference
 from commenter.models.base import InferenceBase
 from commenter.formatters.comment import CommentFormatter
 from commenter.formatters.readme import ReadmeFormatter
-from commenter.processing.function import process_function, process_file
+from commenter.processing.function import process_element, process_file
 from commenter.processing.readme import process_readme
 from commenter.processing.repository import process_repository
 from termcolor import colored
@@ -65,7 +65,7 @@ def main(type: str, service: str, api_key: Optional[str], input_path: str, slug_
         if not slug_code:
             print(colored("Error: --slug-code is required when type is 'slug'", "red"))
             sys.exit(1)
-        process_function(inference, comment_formatter, input_path, slug_code)
+        process_element(inference, comment_formatter, input_path, slug_code)
     else:  # readme
         process_readme(inference, readme_formatter, input_path)
 

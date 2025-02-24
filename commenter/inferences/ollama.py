@@ -15,17 +15,7 @@ class OllamaInference(InferenceBase):
         """
         self.host = host
 
-    def generate_comment(self, code: str, context: Optional[str] = None) -> str:
-        prompt = f"""Please provide a comprehensive comment for the following code.
-        If context is provided, incorporate it into the comment.
-
-        Code:
-        {code}
-
-        Context:
-        {context if context else 'No additional context provided'}
-        """
-
+    def generate(self, prompt: str) -> str:
         response = requests.post(
             f"{self.host}/api/generate",
             json={"model": "qwen2.5:7b-instruct", "prompt": prompt, "stream": False},
