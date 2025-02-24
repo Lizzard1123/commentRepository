@@ -206,10 +206,20 @@ class CommentFormatter:
                 ...
             </parameters>
             <returns>
-                <type>return_type (omit if not a function)</type>
+                <type>return_type</type>
                 <description>Detailed description of the return value.</description>
             </returns>
         </element>
+
+        IMPORTANT: For functions, always include the <returns> section with a specific return type. If the function's return type is not explicitly declared or is marked as 'any', please infer the actual return type by analyzing the function body:
+        
+        - For validation functions (names starting with 'is', 'has', 'valid', etc.), use 'boolean'
+        - For string processing functions, use 'string'
+        - For calculation functions, use 'number'
+        - For functions that collect or filter items, use 'Array<type>' or 'type[]'
+        - For functions that construct objects, use the specific type or 'object'
+        
+        Never use 'any' as a return type in your response - always try to infer a more specific type.
 
         Context:
         {context if context else 'No additional context provided'}
