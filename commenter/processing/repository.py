@@ -1,7 +1,7 @@
 import os
 from ..models.base import InferenceBase
 from ..formatters.comment import CommentFormatter
-from .function import process_functions
+from .function import process_file
 from termcolor import colored
 
 def process_repository(inference: InferenceBase, formatter: CommentFormatter, repo_path: str):
@@ -12,4 +12,4 @@ def process_repository(inference: InferenceBase, formatter: CommentFormatter, re
             if file.endswith(".ts"):
                 file_path = os.path.join(root, file)
                 print(colored(f"Processing file: {file_path}", "blue"))
-                process_functions(inference, formatter, file_path)
+                process_file(inference, formatter, file_path)

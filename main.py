@@ -8,7 +8,7 @@ from commenter.inferences.ollama import OllamaInference
 from commenter.models.base import InferenceBase
 from commenter.formatters.comment import CommentFormatter
 from commenter.formatters.readme import ReadmeFormatter
-from commenter.processing.function import process_functions
+from commenter.processing.function import process_function, process_file
 from commenter.processing.readme import process_readme
 from commenter.processing.repository import process_repository
 from termcolor import colored
@@ -16,7 +16,7 @@ from termcolor import colored
 @click.command()
 @click.option(
     "--type",
-    type=click.Choice(["repository", "functions", "readme"]),
+    type=click.Choice(["repository", "functions", "readme", "slug"]),
     required=True,
     help="Type of documentation to generate",
 )
@@ -28,7 +28,9 @@ from termcolor import colored
 )
 @click.option("--api-key", help="API key for Claude or GPT services", required=False)
 @click.option("--input-path", required=True, help="Path to code file or directory")
-def main(type: str, service: str, api_key: Optional[str], input_path: str):
+@click.option("--slug-code", required=False, help="Function slug to document (required if type is 'slug')")
+
+def main(type: str, service: str, api_key: Optional[str], input_path: str, slug_code: Optional[str]):
     """Generate code comments using AI services."""
     print(colored(f"Initializing documentation generation for {type}...", "cyan"))
 
@@ -58,37 +60,14 @@ def main(type: str, service: str, api_key: Optional[str], input_path: str):
     if type == "repository":
         process_repository(inference, comment_formatter, input_path)
     elif type == "functions":
-        process_functions(inference, comment_formatter, input_path)
+        process_file(inference, comment_formatter, input_path)
+    elif type == "slug":
+        if not slug_code:
+            print(colored("Error: --slug-code is required when type is 'slug'", "red"))
+            sys.exit(1)
+        process_function(inference, comment_formatter, input_path, slug_code)
     else:  # readme
         process_readme(inference, readme_formatter, input_path)
-
-def process_repository(inference: InferenceBase, formatter: CommentFormatter, repo_path: str):
-    """Recursively process all TypeScript files in a repository for function documentation."""
-    print(colored(f"Processing repository: {repo_path}", "yellow"))
-    for root, _, files in os.walk(repo_path):
-        for file in files:
-            if file.endswith(".ts"):
-                file_path = os.path.join(root, file)
-                print(colored(f"Processing file: {file_path}", "blue"))
-                process_functions(inference, formatter, file_path)
-
-
-def generate_readme(
-    inference: InferenceBase, formatter: ReadmeFormatter, repo_path: str
-):
-    """Creates a structured README.md file for the given repository."""
-    print(colored(f"Generating README for {repo_path}", "yellow"))
-    
-    repo_name = os.path.basename(os.path.abspath(repo_path))
-    prompt = formatter.create_prompt(repo_path)
-    raw_content = inference.generate_comment(prompt)
-    formatted_content = formatter.format_readme(raw_content, repo_name)
-
-    readme_path = os.path.join(repo_path, "README.md")
-    with open(readme_path, "w") as f:
-        f.write(formatted_content)
-
-    print(colored(f"Generated README.md at: {readme_path}", "green"))
 
 if __name__ == "__main__":
     main()
