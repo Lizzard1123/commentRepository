@@ -21,6 +21,15 @@ import { CalculatorButton } from '@/components/ui/Calculator';
 import { CalculatorState } from '@/components/ui/Calculator';
 import { TextInput } from '@/components/ui/TextInput';
 
+/**
+ * A function to format a phone number by removing non-digit characters and adding appropriate formatting.
+ *
+ * @param value {string} The input string containing the phone number to be formatted.
+ *
+ * @returns { any } A formatted string representing the phone number, or an empty string if the input is invalid.
+ *
+ * @generated V52Pwd v1.0 Generated on: 2025-02-24 12:11:17 by Ollama
+ */
 const formatPhoneNumber = (value: string) => {
   // Remove all non-digit characters
   const phoneNumber = value.replace(/\D/g, '');
@@ -38,6 +47,16 @@ const formatPhoneNumber = (value: string) => {
   return '';
 };
 
+/**
+ * A function that creates a slider for pre-application borrower information, including various inputs and logic to manage borrowers' details.
+ *
+ * @param Start Line {41} The start line of the function in the source code.
+ * @param End Line {587} The end line of the function in the source code.
+ *
+ * @returns { any } The function returns JSX elements representing the UI for borrower information management.
+ *
+ * @generated yCVJvk v1.0 Generated on: 2025-02-24 12:11:49 by Ollama
+ */
 const PreAppSlider = () => {
   const { updateOfficerState, activeProfile, activeOption, activeLoan, updateActiveProfile, pushUpdates, realtors } =
     useOfficerContext();
@@ -55,12 +74,28 @@ const PreAppSlider = () => {
 
   const currentBorrower =
     currentPage === 1 ? activeProfile.primaryBorrower : activeProfile.additionalBorrowers[currentPage - 2];
+  /**
+   * A function to update the current borrower based on the currentPage.
+   *
+   * @param updater {(draft: WritableDraft<Borrower>) => void} A function that updates the draft of the borrower.
+   *
+   * @returns { any (omit if not a function) } Omit as this is a function and does not return a value.
+   *
+   * @generated SveIcT v1.0 Generated on: 2025-02-24 12:11:56 by Ollama
+   */
   const updateCurrentBorrower = (updater: (draft: WritableDraft<Borrower>) => void) => {
     updateActiveProfile((draft) => {
       updater(currentPage === 1 ? draft.primaryBorrower : draft.additionalBorrowers[currentPage - 2]);
     });
   };
 
+  /**
+   * A function to add a new borrower when the total pages are less than 4.
+   *
+   * @returns { any } The function does not explicitly return anything, but updates state or performs side effects.
+   *
+   * @generated bM4L0J v1.0 Generated on: 2025-02-24 12:12:00 by Ollama
+   */
   const handleAddBorrower = () => {
     if (totalPages < 4) {
       updateActiveProfile((draft) => {
@@ -70,12 +105,30 @@ const PreAppSlider = () => {
     }
   };
 
+  /**
+   * A function to handle the previous page action by decrementing the current page number if it is greater than 1.
+   *
+   * @param Not explicitly defined (arrow function) {-} -
+   *
+   * @returns { any } The function returns nothing, but updates the state.
+   *
+   * @generated 4fFNOI v1.1 Generated on: 2025-02-24 12:15:06 by Ollama
+   */
   const handlePrevious = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
 
+  /**
+   * A function to increment the current page by one if it is less than the total number of pages.
+   *
+   * @param none {none} This function does not take any parameters.
+   *
+   * @returns { any } The return type is not explicitly defined in the function, hence it is of type any.
+   *
+   * @generated QzUg5h v1.3 Generated on: 2025-02-24 12:18:18 by Ollama
+   */
   const handleNext = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
@@ -101,6 +154,16 @@ const PreAppSlider = () => {
   //reduce liabilities checks:
   const isHousingLower = Math.abs(housingRatioLiabilitiesDeficit) <= Math.abs(dtiLiabilitiesDeficit);
 
+  /**
+   * A function to update the state of a calculator for a specific borrower.
+   *
+   * @param borrowerId {string} The unique identifier for the borrower whose state is being updated.
+   * @param state {CalculatorState} The new state to be set for the specified borrower.
+   *
+   * @returns { any } This function does not return a value.
+   *
+   * @generated tBOacV v1.0 Generated on: 2025-02-24 12:12:18 by Ollama
+   */
   const handleCalculatorStateChange = (borrowerId: string, state: CalculatorState) => {
     setCalculatorStates((prev) => ({
       ...prev,
@@ -108,18 +171,55 @@ const PreAppSlider = () => {
     }));
   };
 
+  /**
+   * A function to update the income of the current borrower based on the provided monthly income.
+   *
+   * @param monthlyIncome {number} The monthly income to update the current borrower's income with.
+   *
+   * @returns { any (omitted due to not being a function) } Omit as it is not a function.
+   *
+   * @generated chMngo v1.0 Generated on: 2025-02-24 12:12:23 by Ollama
+   */
   const handleCalculatorResult = (monthlyIncome: number) => {
     updateCurrentBorrower((x) => (x.income = monthlyIncome));
   };
 
+  /**
+   * A function to validate if a given email string is valid.
+   *
+   * @param email {string} The email address to be validated.
+   *
+   * @returns { any } A boolean value indicating whether the provided email is valid or not.
+   *
+   * @generated OjixOd v1.0 Generated on: 2025-02-24 12:12:29 by Ollama
+   */
   const isValidEmail = (email: string) => {
     return !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
+  /**
+   * A function to validate if a given phone number is valid based on length.
+   *
+   * @param phone {string} The phone number to be validated.
+   *
+   * @returns { any } A boolean indicating whether the phone number is valid or not.
+   *
+   * @generated ktUxIs v1.0 Generated on: 2025-02-24 12:12:34 by Ollama
+   */
   const isValidPhone = (phone: string) => {
     return !phone || phone.replace(/\D/g, '').length === 10;
   };
 
+  /**
+   * A function to handle email change events, updating the state with validation errors and current borrower's email.
+   *
+   * @param e {React.ChangeEvent<HTMLInputElement>} The event generated by the input element change.
+   * @param borrowerId {string} The ID of the borrower whose email is being updated.
+   *
+   * @returns { any (omitted as not a function returning type) } Omitted as this function does not return any value.
+   *
+   * @generated gORV9K v1.0 Generated on: 2025-02-24 12:12:42 by Ollama
+   */
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>, borrowerId: string) => {
     const value = e.target.value;
     const hasError = !isValidEmail(value);
@@ -127,6 +227,16 @@ const PreAppSlider = () => {
     updateCurrentBorrower((x) => (x.email = value));
   };
 
+  /**
+   * A function to handle phone number change events and update state accordingly.
+   *
+   * @param e {React.ChangeEvent<HTMLInputElement>} The event object containing the target element and its value.
+   * @param borrowerId {string} The ID of the borrower associated with the phone number being updated.
+   *
+   * @returns { any (omit if not a function) } No explicit return value, updates state internally.
+   *
+   * @generated CSeMdr v1.0 Generated on: 2025-02-24 12:12:50 by Ollama
+   */
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, borrowerId: string) => {
     const value = e.target.value;
     const formattedPhone = formatPhoneNumber(value);

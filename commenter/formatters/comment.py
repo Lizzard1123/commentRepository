@@ -117,18 +117,30 @@ class CommentFormatter:
             print(inference_output)
             print(colored(f"Could not parse, will not format, trying again", "red"))
             return "None"
-        slug = self._generate_slug()
 
-        # Extract previous version if available
+        # Extract previous slug and version if available
+        slug = None
         version = "v1.0"
         if previous_comment:
             import re
 
-            match = re.search(r"@generated\s+\w+\s+(v\d+\.\d+)", previous_comment)
-            if match:
-                prev_version = match.group(1)
+            # Extract slug
+            slug_match = re.search(r"@generated\s+(\w+)\s+v\d+\.\d+", previous_comment)
+            if slug_match:
+                slug = slug_match.group(1)
+
+            # Extract version
+            version_match = re.search(
+                r"@generated\s+\w+\s+(v\d+\.\d+)", previous_comment
+            )
+            if version_match:
+                prev_version = version_match.group(1)
                 major, minor = map(int, prev_version[1:].split("."))
                 version = f"v{major}.{minor + 1}"
+
+        # Generate new slug only if one wasn't found in the previous comment
+        if not slug:
+            slug = self._generate_slug()
 
         comment_lines = ["/**"]
         comment_lines.append(f' * {parsed["description"]}')
